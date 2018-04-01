@@ -1,4 +1,3 @@
-
 def is_isbn_or_key(word):
     """
     :param word:
