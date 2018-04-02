@@ -1,4 +1,5 @@
 from flask import Flask
+from app.models.book import db
 
 
 def create_app():
@@ -6,6 +7,9 @@ def create_app():
     register_blueprint(app)
     app.config.from_object('app.secure')  # DEBUG 在flask的配置中默认参数，默认值是false
     app.config.from_object('app.setting')
+
+    db.init_app(app)
+    db.create_all(app=app)
     return app
 
 
