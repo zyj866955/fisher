@@ -4,14 +4,17 @@ from flask import jsonify, request
 from app.forms.book import SearchForm
 from app.libs.helper import is_isbn_or_key
 from app.spider.yushu_book import YuShuBook
+from app.view_models.book import BookCollection
 from . import web
+
+import json
 
 
 @web.route('/index')
 def index():
     # 基于类的视图，即插视图
     headers = {
-        'comtent-type': 'text-html',
+        'content-type': 'text-html',
         'location': 'www.baidu.com'
     }
     # response = make_response('<html></html>', 301)
@@ -25,16 +28,23 @@ def search():
     :return:
     """
     form = SearchForm(request.args)
+    books = BookCollection()
+
     if form.validate():
         q = form.q.data
         page = form.page.data
+        yushu_book = YuShuBook()
         key_or_isbn = is_isbn_or_key(q)
+
         if key_or_isbn == 'isbn':
-            result = YuShuBook.search_by_isbn(q)
+            yushu_book.search_by_isbn(q)
         else:
-            result = YuShuBook.search_by_keyword(q, page)
+            yushu_book.search_by_keyword(q, page)
+
+        books.fill(q, yushu_book)
         # dict序列化
-        return jsonify(result)
+        # return jsonify(books)
         # return json.dumps(result), 200, {'content-type': 'application/json'}
+        return json.dumps(books, default=lambda o: o.__dict__)
     else:
         return jsonify(form.errors)
