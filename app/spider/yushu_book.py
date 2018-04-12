@@ -34,3 +34,8 @@ class YuShuBook:
         if data:
             self.total = data['total']
             self.book = data['books']
+    
+    @property
+    def first_element(self):
+        return self.book[0] if len(self.book) >=1 else None
+        

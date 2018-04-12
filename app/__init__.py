@@ -3,6 +3,7 @@ from app.models.book import db
 
 
 def create_app():
+    # app = Flask(__name__, static_folder='statics')
     app = Flask(__name__)
     register_blueprint(app)
     app.config.from_object('app.secure')  # DEBUG 在flask的配置中默认参数，默认值是false

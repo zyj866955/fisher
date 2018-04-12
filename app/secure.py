@@ -1,2 +1,3 @@
-DEBUG = False
+DEBUG = True
 SQLALCHEMY_DATABASE_URI = 'mysql+cymysql://root:123456@47.94.90.193:3306/fisher'
+SECRET_KEY = 'ZHOUYAJUN'
