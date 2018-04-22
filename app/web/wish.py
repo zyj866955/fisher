@@ -1,4 +1,4 @@
-from flask import current_app, flash, render_template
+from flask import current_app, flash, render_template, redirect, url_for
 from flask_login import login_required, current_user
 
 from app.models.base import db
@@ -11,7 +11,7 @@ __author__ = 'zyj'
 
 @web.route('/my/wish')
 def my_wish():
-    wishes_of_mine = Wish.get_user_gifts(current_user.id)
+    wishes_of_mine = Wish.get_user_wishes(current_user.id)
     isbn_list = [wish.isbn for wish in wishes_of_mine]
     gifts_count_list = Wish.get_gifts_count(isbn_list)
     wish_view_model = MyWishesViewModel(wishes_of_mine, gifts_count_list)
@@ -31,6 +31,7 @@ def save_to_wish(isbn):
             db.session.add(wish)
     else:
         flash('这本书已添加至你的赠送清单或存在于你的心愿清单，请不要重复操作')
+    return redirect(url_for('web.book_detail', isbn=isbn))
 
 
 @web.route('/satisfy/wish/<int:wid>')

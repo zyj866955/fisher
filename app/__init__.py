@@ -1,8 +1,11 @@
 from flask import Flask
 from flask_login import LoginManager
+from flask_mail import Mail
+
 from app.models.base import db
 
 login_manager = LoginManager()
+mail = Mail()
 
 
 def create_app():
@@ -17,6 +20,8 @@ def create_app():
     # @login_required装饰器的作用，请求需登录的url时，会重定向到登录页面
     login_manager.login_view = 'web.login'
     login_manager.login_message = '请先登录或注册'
+
+    mail.init_app(app)
 
     with app.app_context():
         '''利用应用上下问，将APP入栈'''

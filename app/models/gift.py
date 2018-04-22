@@ -35,6 +35,9 @@ class Gift(Base):
         # 去重的意义：同一本书可以与多个人关联，形成多个礼物，但是书只有一本
         recent_gift = Gift.query.filter_by(launched=False).group_by(Gift.isbn).order_by(
             desc(Gift.create_time)).limit(current_app.config['RECENT_GIFT_COUNTER']).distinct().all()
+        # recent_gift = db.session.query(Gift).filter(
+        #     Gift.launched == False).group_by(Gift.isbn).order_by(desc(Gift.create_time)).limit(
+        #     current_app.config['RECENT_GIFT_COUNTER']).distinct().all()
         return recent_gift
 
     @property
@@ -42,3 +45,6 @@ class Gift(Base):
         yushu_book = YuShuBook()
         yushu_book.search_by_isbn(self.isbn)
         return yushu_book.first_element
+
+    def is_yours_gift(self, uid):
+        return self.uid == uid

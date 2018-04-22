@@ -1,10 +1,15 @@
 from sqlalchemy import Column, Integer, String, Boolean, Float
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from flask import current_app
+from math import floor
 
+from app.libs.enums import PendingEnum
 from app.libs.helper import is_isbn_or_key
-from app.models.base import Base
+from app.models.base import Base, db
 from app import login_manager
+from app.models.drift import Drift
 from app.models.gift import Gift
 from app.models.wish import Wish
 from app.spider.yushu_book import YuShuBook
@@ -17,7 +22,7 @@ class User(Base, UserMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
     nickname = Column(String(50), nullable=False)
     phone_number = Column(String(18), unique=True)
-    _password = Column('password', String(128), nullable=False)
+    _password = Column('password', String(128))
     email = Column(String(50), unique=True, nullable=False)
     confirmed = Column(Boolean, default=False)
     beans = Column(Float, default=0)
@@ -49,7 +54,7 @@ class User(Base, UserMixin):
         # 查询这个isbn对应的图书时候存在
         yushu_book = YuShuBook()
         yushu_book.search_by_isbn(isbn)
-        if not yushu_book.first_element():
+        if not yushu_book.first_element:
             return False
         # 当前用户是否已经赠送过此书，即不允许用户赠送多本相同的书，查询此书是否赠送过
         # 当前用户心愿清单中是否存在此书，即不允许用户既是索要者又是赠送者，查询此书是否添加过心愿清单
@@ -61,9 +66,45 @@ class User(Base, UserMixin):
         else:
             return False
 
+    @classmethod
+    def reset_password(cls, token, new_password):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        uid = data.get('id')
+        with db.auto_commit:
+            user = db.session.get(uid)
+            if user:
+                user.password = new_password
+            return False
+
+    def generate_token(self, expiration=600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'id': self.id}).decode('utf-8')  # 写入用户的数据
+
+    def can_save_drift(self):
+        """判断当前用户时候能请求书籍"""
+        if self.beans < 1:
+            return False
+        success_gifts_count = Gift.query.filter_by(uid=self.id, launched=True).count()
+        success_receive_count = Drift.query.filter_by(request_id=self.id, pending=PendingEnum.success).count()
+        return True if floor(success_receive_count / 2) < success_gifts_count else False
+
+    @property
+    def summary(self):
+        """返回用户简介，格式化数据"""
+        return dict(
+            nickname=self.nickname,
+            beans=self.beans,
+            email=self.email,
+            send_receive=str(self.send_counter) + '/' + str(self.receive_counter)
+        )
+
 
 # 告诉flask_login，调用这个方法查询用户
 @login_manager.user_loader
 def get_user(id):
     # 查询主键，可以不用filter_by，用get
-    return User.query.get(int(id)).first()
+    return User.query.get(int(id))

@@ -9,6 +9,7 @@ class BookViewModel:
         self.pages = book['pages']
         self.pubdate = book['pubdate']
         self.binding = book['binding']
+        self.isbn = book['isbn']
 
     @property
     def intro(self):
