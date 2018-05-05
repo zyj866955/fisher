@@ -8,11 +8,23 @@ from app.libs.enums import PendingEnum
 from app.models.base import db
 from app.models.drift import Drift
 from app.models.gift import Gift
+from app.models.user import User
+from app.models.wish import Wish
 from app.view_models.book import BookViewModel
 from app.view_models.drift import DriftCollection
 from . import web
 
 __author__ = 'zyj'
+
+'''
+模型对象：
+    我的礼物
+    我的心愿
+    我的交易
+数据库事物：
+    一次数据库的操作，也可能包括多个表的操作
+    事物的一致性：在一次事物中，要保证所有的操作都完成，如果代码在执行过程中出现问题，则必须回滚，之前的对数据库的操作全部撤销
+'''
 
 
 @web.route('/drift/<int:gid>', methods=['GET', 'POST'])
@@ -43,14 +55,21 @@ def send_drift(gid):
 @login_required
 def pending():
     drifts = Drift.query.filter(or_(Drift.request_id == current_user.id,
-                                   Drift.gifter_id == current_user.id)).order_by(desc(Drift.create_time)).all()
+                                    Drift.gifter_id == current_user.id)).order_by(desc(Drift.create_time)).all()
     drifts_collections = DriftCollection(drifts, current_user.id)
     return render_template('pending.html', drifts=drifts_collections)
 
 
 @web.route('/drift/<int:did>/reject')
+@login_required
 def reject_drift(did):
-    pass
+    """拒绝礼物"""
+    with db.auto_commit:
+        drift = Drift.query.filter(Drift.id == did, Drift.gifter_id == current_user.id).first_or_404()
+        drift.pending = PendingEnum.reject
+        requester = User.query.filter_by(id=drift.request_id).first_or_404()
+        requester.beans += 1
+    return redirect(url_for('web.pending'))
 
 
 @web.route('/drift/<int:did>/redraw')
@@ -64,8 +83,18 @@ def redraw_drift(did):
 
 
 @web.route('/drift/<int:did>/mailed')
+@login_required
 def mailed_drift(did):
-    pass
+    with db.auto_commit:
+        drift = Drift.query.filter_by(id=did, gifter_id=current_user.id).first_or_404()
+        drift.pending = PendingEnum.success
+        current_user.beans += 1
+
+        gift = Gift.query.filter_by(id=drift.gifter_id).first_or_404()
+        gift.launched = True
+
+        wish = Wish.query.filter_by(id=drift.request_id).first_or_404()
+        wish.launched = True
 
 
 def save_drift(drift_form, current_gift):

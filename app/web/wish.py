@@ -10,6 +10,7 @@ __author__ = 'zyj'
 
 
 @web.route('/my/wish')
+@login_required
 def my_wish():
     wishes_of_mine = Wish.get_user_wishes(current_user.id)
     isbn_list = [wish.isbn for wish in wishes_of_mine]
@@ -40,5 +41,9 @@ def satisfy_wish(wid):
 
 
 @web.route('/wish/book/<isbn>/redraw')
+@login_required
 def redraw_from_wish(isbn):
-    pass
+    wish = Wish.query.filter_by(isbn=isbn, launched=False).first_or_404()
+    with db.auto_commit:
+        wish.delete()
+    return redirect(url_for('web.my_wish'))

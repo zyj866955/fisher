@@ -1,7 +1,8 @@
 from flask_login import login_required, current_user
-from flask import current_app, flash, render_template
+from flask import current_app, flash, render_template, redirect, url_for
 
 from app.models.base import db
+from app.models.drift import Drift
 from app.models.gift import Gift
 from app.view_models.gift import MyGiftsViewModel
 from . import web
@@ -33,8 +34,18 @@ def save_to_gifts(isbn):
             db.session.add(gift)
     else:
         flash('这本书已添加至你的赠送清单或存在于你的心愿清单，请不要重复操作')
+    return redirect(url_for('web.book_detail', isbn=isbn))
 
 
 @web.route('/gifts/<gid>/redraw')
+@login_required
 def redraw_from_gifts(gid):
-    pass
+    gift = Gift.query.filter_by(id=gid, launched=False).first_or_404()
+    drift = Drift.query.filter_by(gift_id=gift.id).first_or_404()
+    if drift:
+        flash('该礼物正在交易中，请先处理掉交易，再进行撤销操作')
+    else:
+        with db.auto_commit:
+            current_user.beans -= current_app.config['BEANS']
+            gift.delete()
+    return redirect(url_for('web.my_gifts'))
