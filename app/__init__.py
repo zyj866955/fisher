@@ -24,7 +24,7 @@ def create_app():
     mail.init_app(app)
 
     with app.app_context():
-        '''利用应用上下问，将APP入栈'''
+        '''利用应用上下文，将APP入栈'''
         db.create_all()
     return app
 

@@ -3,6 +3,7 @@
 # @Author  : zhouyajun
 from sqlalchemy import Column, Integer, String, SmallInteger
 
+from app.libs.enums import PendingEnum
 from app.models.base import Base
 
 
@@ -18,7 +19,7 @@ class Drift(Base):
     # 书籍信息
     isbn = Column(String(13))
     book_title = Column(String(50))
-    book_auther = Column(String(30))
+    book_author = Column(String(30))
     book_img = Column(String(30))
 
     # 请求者信息
@@ -30,4 +31,12 @@ class Drift(Base):
     gift_id = Column(Integer)
     gifter_name = Column(String(30))
 
-    pending = Column('pending', SmallInteger, default=1)
+    _pending = Column('pending', SmallInteger, default=1)
+
+    @property
+    def pending(self):
+        return PendingEnum(self._pending)
+
+    @pending.setter
+    def pending(self, status):
+        self._pending = status.value

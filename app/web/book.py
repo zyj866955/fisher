@@ -66,13 +66,13 @@ def book_detail(isbn):
     yushu_book.search_by_isbn(isbn)
     book = BookViewModel(yushu_book.first_element)
     if current_user.is_authenticated:
-        if Gift.query.filter_by(isbn=isbn, launched=False, id=current_user.id).first():
+        if Gift.query.filter_by(isbn=isbn, launched=False, uid=current_user.id).first():
             has_in_gifts = True
-        if Wish.query.filter_by(isbn=isbn, launched=False, id=current_user.id).first():
+        if Wish.query.filter_by(isbn=isbn, launched=False, uid=current_user.id).first():
             has_in_wishes = True
 
-    trade_gifts = Gift.query.filter_by(isbn=isbn, launched=False, id=current_user.id).all()
-    trade_wishes = Wish.query.filter_by(isbn=isbn, launched=False, id=current_user.id).all()
+    trade_gifts = Gift.query.filter_by(isbn=isbn, launched=False, uid=current_user.id).all()
+    trade_wishes = Wish.query.filter_by(isbn=isbn, launched=False, uid=current_user.id).all()
 
     trade_gifts_model = Trade(trade_gifts)
     trade_wishes_model = Trade(trade_wishes)

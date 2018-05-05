@@ -4,10 +4,12 @@ from sqlalchemy import or_, desc
 
 from app.forms.book import DriftForm
 from app.libs.email import send_email
+from app.libs.enums import PendingEnum
 from app.models.base import db
 from app.models.drift import Drift
 from app.models.gift import Gift
 from app.view_models.book import BookViewModel
+from app.view_models.drift import DriftCollection
 from . import web
 
 __author__ = 'zyj'
@@ -40,9 +42,10 @@ def send_drift(gid):
 @web.route('/pending')
 @login_required
 def pending():
-    if __name__ == '__main__':
-        drift = Drift.query.filter(or_(Drift.request_id == current_user.id,
-                                       Drift.gifter_id == current_user.id)).order_by(desc(Drift.create_time)).all()
+    drifts = Drift.query.filter(or_(Drift.request_id == current_user.id,
+                                   Drift.gifter_id == current_user.id)).order_by(desc(Drift.create_time)).all()
+    drifts_collections = DriftCollection(drifts, current_user.id)
+    return render_template('pending.html', drifts=drifts_collections)
 
 
 @web.route('/drift/<int:did>/reject')
@@ -51,8 +54,13 @@ def reject_drift(did):
 
 
 @web.route('/drift/<int:did>/redraw')
+@login_required
 def redraw_drift(did):
-    pass
+    with db.auto_commit:
+        drift = Drift.query.filter_by(requester_id=current_user.id, id=did).first_or_404()
+        drift.status = PendingEnum.redraw
+        current_user.beans += 1
+    return redirect(url_for('web.pending'))
 
 
 @web.route('/drift/<int:did>/mailed')
